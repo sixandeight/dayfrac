@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DayFrac">
+<meta name="theme-color" content="#1a1a1a">
+<title>DayFrac</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: #2a2a2a;
+    font-family: 'DM Sans', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  .app {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .elapsed {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #D97757;
+  }
+
+  .content {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+  }
+
+  .fraction-display {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    text-align: center;
+    color: #fff;
+  }
+
+  .unit {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.18em;
+    font-weight: 400;
+    opacity: 0.6;
+    margin-left: 0.3em;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .frac-size-1, .frac-size-2, .frac-size-3, .frac-size-4 {
+    font-size: clamp(3rem, 18vw, 9rem);
+  }
+  .frac-size-5, .frac-size-6 {
+    font-size: clamp(2.4rem, 14vw, 7rem);
+  }
+  .frac-size-7, .frac-size-8 {
+    font-size: clamp(2rem, 11vw, 5.5rem);
+  }
+  .frac-size-9, .frac-size-10 {
+    font-size: clamp(1.6rem, 8.5vw, 4.2rem);
+  }
+
+  .settings-toggle {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    width: 36px;
+    height: 36px;
+    background: none;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    color: rgba(255,255,255,0.4);
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  .settings-panel {
+    position: absolute;
+    inset: 0;
+    background: rgba(10,10,10,0.97);
+    backdrop-filter: blur(20px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 2rem;
+    gap: 2.5rem;
+    z-index: 20;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .settings-panel.open { opacity: 1; pointer-events: all; }
+
+  .setting-group label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #777;
+    margin-bottom: 0.75rem;
+  }
+
+  .setting-group .value-display {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #e8e8e8;
+    margin-bottom: 0.5rem;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    max-width: 300px;
+    height: 3px;
+    background: #333;
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #e8e8e8;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .time-inputs {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+  .time-input {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.2rem;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    color: #e8e8e8;
+    padding: 0.5rem 0.75rem;
+    width: 100px;
+    text-align: center;
+  }
+  .time-input:focus { border-color: #666; outline: none; }
+  .time-separator {
+    color: #555;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <div class="elapsed" id="elapsed"></div>
+
+  <div class="content">
+    <div class="fraction-display frac-size-6" id="display">
+      <span id="intPart">0</span><span>.</span><span id="decPart">000000</span><span class="unit">days</span>
+    </div>
+  </div>
+
+  <button class="settings-toggle" id="settingsBtn" aria-label="Settings">⚙</button>
+
+  <div class="settings-panel" id="settingsPanel">
+    <div class="setting-group">
+      <label>Decimal Places</label>
+      <div class="value-display" id="dpValue">6</div>
+      <input type="range" id="dpSlider" min="1" max="10" value="6">
+    </div>
+    <div class="setting-group">
+      <label>Actionable Window</label>
+      <div class="time-inputs">
+        <input type="time" class="time-input" id="startTime" value="06:00">
+        <span class="time-separator">to</span>
+        <input type="time" class="time-input" id="endTime" value="21:00">
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let decimalPlaces = parseInt(localStorage.getItem('dp') || '6');
+let startHour = parseFloat(localStorage.getItem('startH') || '6');
+let startMin  = parseFloat(localStorage.getItem('startM') || '0');
+let endHour   = parseFloat(localStorage.getItem('endH') || '21');
+let endMin    = parseFloat(localStorage.getItem('endM') || '0');
+
+const display    = document.getElementById('display');
+const intPart    = document.getElementById('intPart');
+const decPart    = document.getElementById('decPart');
+const elapsed    = document.getElementById('elapsed');
+const dpSlider   = document.getElementById('dpSlider');
+const dpValue    = document.getElementById('dpValue');
+const panel      = document.getElementById('settingsPanel');
+const settingsBtn= document.getElementById('settingsBtn');
+const startInput = document.getElementById('startTime');
+const endInput   = document.getElementById('endTime');
+
+dpSlider.value = decimalPlaces;
+dpValue.textContent = decimalPlaces;
+startInput.value = pad(startHour) + ':' + pad(startMin);
+endInput.value = pad(endHour) + ':' + pad(endMin);
+applySizeClass();
+
+function pad(n) { return String(Math.floor(n)).padStart(2, '0'); }
+
+settingsBtn.addEventListener('click', () => panel.classList.toggle('open'));
+panel.addEventListener('click', (e) => {
+  if (e.target === panel) panel.classList.remove('open');
+});
+
+dpSlider.addEventListener('input', (e) => {
+  decimalPlaces = parseInt(e.target.value);
+  dpValue.textContent = decimalPlaces;
+  localStorage.setItem('dp', decimalPlaces);
+  applySizeClass();
+});
+
+startInput.addEventListener('change', (e) => {
+  const [h, m] = e.target.value.split(':').map(Number);
+  startHour = h; startMin = m;
+  localStorage.setItem('startH', h);
+  localStorage.setItem('startM', m);
+});
+endInput.addEventListener('change', (e) => {
+  const [h, m] = e.target.value.split(':').map(Number);
+  endHour = h; endMin = m;
+  localStorage.setItem('endH', h);
+  localStorage.setItem('endM', m);
+});
+
+function applySizeClass() {
+  for (let i = 1; i <= 10; i++) display.classList.remove('frac-size-' + i);
+  display.classList.add('frac-size-' + decimalPlaces);
+}
+
+function tick() {
+  const now = new Date();
+
+  const startMs = new Date(now);
+  startMs.setHours(startHour, startMin, 0, 0);
+
+  const endMs = new Date(now);
+  endMs.setHours(endHour, endMin, 0, 0);
+
+  const windowMs = endMs - startMs;
+  const elapsedMs = now - startMs;
+
+  let fraction;
+  if (now < startMs) {
+    fraction = 1;
+  } else if (now > endMs) {
+    fraction = 0;
+  } else {
+    fraction = 1 - (elapsedMs / windowMs);
+  }
+
+  const str = fraction.toFixed(decimalPlaces);
+  const [iStr, dStr] = str.split('.');
+  intPart.textContent = iStr;
+  decPart.textContent = dStr;
+
+  const spent = 1 - fraction;
+  elapsed.style.height = (spent * 100) + '%';
+
+  requestAnimationFrame(tick);
+}
+
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
