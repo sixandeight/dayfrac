@@ -290,10 +290,10 @@ function tick() {
   const spent = 1 - fraction;
   elapsed.style.height = (spent * 100) + '%';
 
-  requestAnimationFrame(tick);
+  setTimeout(tick, 1000);
 }
 
-requestAnimationFrame(tick);
+tick();
 </script>
 </body>
 </html>
